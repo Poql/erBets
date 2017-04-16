@@ -1,0 +1,16 @@
+// GET bets/:bet_id
+// DELETE bets/:bet_id
+// PUT bets/:bet_id
+
+// GET users/:user_id
+// GET users/:user_id/bets/
+
+class Bet {
+	constructor(hostId, guestId, amount, endDate) {
+		this.userId = userId
+		this.guestId = guestId
+		this.amount = amount
+		this.confirmed = false
+		this.endDate = endDate
+	}
+}
