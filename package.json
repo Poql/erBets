@@ -9,8 +9,11 @@
   "author": "Gaétan Zanella",
   "license": "ISC",
   "dependencies": {
+  	"passport": "*",
+  	"passport-facebook-token": "*",
     "express": "^4.13.4",
     "mongoose": "*",
-    "body-parser": "~1.0.1"
+    "body-parser": "~1.0.1",
+    "morgan": "*"
   }
 }
