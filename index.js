@@ -3,57 +3,35 @@ const Express = require("express")
 const FacebookTokenStrategy = require("passport-facebook-token")
 const Database = require("./database")
 const BodyParser = require("body-parser")
-const passport = require("passport")
 const config = require("./config")
 const morgan = require("morgan")
+const Authentication = require("./authentication")
 
 const database = new Database()
-
-passport.use(new FacebookTokenStrategy(
-	config.facebookAuthentication, 
-	(accessToken, refreshToken, profile, done) => {
-		console.log("Checking facebook authentication for user " + profile.id + "with access token " + accessToken)
-		database.findOrCreateUser(accessToken, profile, (user, error) => {
-			console.log("Facebook authentication check done")
-			return done(error, user);
-		})
-	})
-)
-
+const authentication = new Authentication()
 const app = new Express()
-
 const jsonParser = BodyParser.json()
 const urlencodedParser = BodyParser.urlencoded({ extended: false })
 
 app.use(morgan('combined'))
 app.use(jsonParser)
 app.use(urlencodedParser)
-app.use(passport.initialize())
+app.use(authentication.initialize())
+
+authentication.use((accessToken, refreshToken, profile, done) => {
+		console.log("Checking facebook authentication for user " + profile.id + "with access token " + accessToken)
+		database.findOrCreateUser(accessToken, profile, (user, error) => {
+			console.log("Facebook authentication check done")
+			return done(error, user);
+		})
+	}
+)
+
+// MARK: - Public API
 
 // respond with "hello world" when a GET request is made to the homepage
 app.get("/", function(req, res) {
   res.send("hello world")
-})
-
-app.post("/facebook_token", function(req, res) { 
-	passport.authenticate('facebook-token', { session: false } , function(error, user, info) {
-		if (error) {
-			console.log("Facebook access token failed")
-			res.sendStatus(401)
-		} else {
-			console.log("Facebook access token succeed")
-			res.sendStatus(200)
-		}
-	})(req, res)
-})
-
-app.get("/error", (req, res) => {
-	console.log("Failure redirection")
-	res.sendStatus(401)
-})
-
-app.get("/me", passport.authenticate("facebook-token",  { session: false }), function(req, res) {
-	res.send({ user : req.user })
 })
 
 app.get("/allUsers", function(req, res) {
@@ -61,5 +39,22 @@ app.get("/allUsers", function(req, res) {
 		res.send({users : users})
 	})
 })
+
+app.post("/facebook_token", authentication.middleware, (req, res) => {
+	res.send({sucess : true})
+})
+
+// MARK: - Authenticated API
+
+const apiRoutes = new Express.Router()
+
+apiRoutes.use(authentication.middleware)
+
+apiRoutes.get("/me", (req, res) => {
+	console.log("Sending user profile " + req.user)
+	res.send({ user : req.user })
+})
+
+app.use("/api", apiRoutes)
 
 app.listen(8888)
